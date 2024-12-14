@@ -1,0 +1,26 @@
+CREATE DATABASE haveiseen_db;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,      -- Identificador único do usuário
+    username VARCHAR(50) NOT NULL UNIQUE,   -- Nome de usuário único
+    email VARCHAR(100) NOT NULL UNIQUE,     -- Email único
+    password_hash VARCHAR(255) NOT NULL,    -- Hash da senha
+    salt VARCHAR(32) NOT NULL,              -- Salt para aumentar a segurança do hash
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- Data de criação do registro
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Última atualização
+    STATUS BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE tokens (
+id INT NOT NULL,
+TYPE VARCHAR(5),
+api_key VARCHAR(50)
+);
+
+CREATE TABLE user_lists (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    NAME VARCHAR(255) NOT NULL,
+    TYPE ENUM('movie', 'book') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
