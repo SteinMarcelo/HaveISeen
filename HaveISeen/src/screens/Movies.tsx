@@ -1,134 +1,104 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
+  StyleSheet,
   FlatList,
   ActivityIndicator,
-  StyleSheet,
   Image,
-  TextInput,
   TouchableOpacity,
 } from "react-native";
 import axios from "axios";
-
-interface Movie {
-  id: number;
-  title: string;
-  overview: string;
-  poster_path: string;
-  release_date: string;
-  vote_average: number;
-}
-
-interface MoviesResponse {
-  page: number;
-  results: Movie[];
-  total_results: number;
-  total_pages: number;
-}
+import { useNavigation } from "@react-navigation/native";
 
 const Movies = () => {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [apiKey, setApiKey] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [movies, setMovies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tmdbApiKey, setTmdbApiKey] = useState<string>("");
+
+  const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchApiKey = async () => {
-      try {
-        const response = await axios.get(
-          "http://192.168.1.3:3000/api/users/movie-api-key"
-        );
-        setApiKey(response.data.apiKey);
-      } catch (error) {
-        console.error("Erro ao obter a chave da API:", error);
-      }
-    };
-
-    fetchApiKey();
+    fetchTmdbApiKey();
   }, []);
 
   useEffect(() => {
-    if (!apiKey) return;
-
-    const fetchMovies = async () => {
-      try {
-        const response = await axios.get<MoviesResponse>(
-          `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=pt-BR&page=1`
-        );
-        setMovies(response.data.results);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erro ao buscar filmes:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchMovies();
-  }, [apiKey]);
-
-  const handleSearch = async () => {
-    if (searchQuery.trim() === "") {
-      setLoading(true);
-      try {
-        const response = await axios.get<MoviesResponse>(
-          `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=pt-BR&page=1`
-        );
-        setMovies(response.data.results);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erro ao buscar filmes populares:", error);
-        setLoading(false);
-      }
-      return;
+    if (tmdbApiKey) {
+      fetchMovies();
     }
+  }, [tmdbApiKey]);
 
-    setLoading(true);
+  const fetchTmdbApiKey = async () => {
     try {
-      const response = await axios.get<MoviesResponse>(
-        `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(searchQuery)}&language=pt-BR`
+      const response = await axios.get(
+        "http://192.168.1.150:3000/api/users/movie-api-key"
       );
-      setMovies(response.data.results);
-      setLoading(false);
+      setTmdbApiKey(response.data.apiKey);
+    } catch (error) {
+      console.error("Erro ao buscar chave da API do TMDB:", error);
+      setError("Não foi possível carregar a chave da API do TMDB.");
+    }
+  };
+
+  const fetchMovies = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(
+        `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbApiKey}&language=pt-BR&page=1`
+      );
+
+      const moviesData = response.data.results;
+      if (!Array.isArray(moviesData)) {
+        throw new Error("Dados de filmes não estão no formato esperado");
+      }
+
+      setMovies(moviesData);
     } catch (error) {
       console.error("Erro ao buscar filmes:", error);
+      setError("Ocorreu um erro ao carregar os filmes.");
+    } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  }
+  const renderMovieCard = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("MovieDetails", { movie: item })}
+    >
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.releaseDate}>Lançamento: {item.release_date}</Text>
+      <Text style={styles.overview} numberOfLines={3}>
+        {item.overview}
+      </Text>
+      {item.poster_path && (
+        <Image
+          source={{
+            uri: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+          }}
+          style={styles.poster}
+        />
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filmes Populares</Text>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Pesquisar filmes..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+      <Text style={styles.text}>Feed de Filmes</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : (
+        <FlatList
+          data={movies}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderMovieCard}
         />
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonText}>Pesquisar</Text>
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        data={movies}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.movieItem}>
-            <Text style={styles.movieTitle}>{item.title}</Text>
-            <Image
-              source={{
-                uri: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
-              }}
-              style={styles.poster}
-            />
-          </View>
-        )}
-      />
+      )}
     </View>
   );
 };
@@ -137,51 +107,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: "#fff",
   },
-  title: {
+  text: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 10,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    textAlign: "center",
     marginBottom: 20,
   },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    borderColor: "#ccc",
+  errorText: {
+    fontSize: 16,
+    color: "red",
+    textAlign: "center",
+    marginVertical: 20,
+  },
+  card: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 10,
     borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
+    borderColor: "#ddd",
   },
-  searchButton: {
-    marginLeft: 10,
-    backgroundColor: "#007BFF",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-  searchButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  movieItem: {
-    padding: 10,
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-  },
-  movieTitle: {
+  title: {
     fontSize: 18,
     fontWeight: "bold",
   },
+  releaseDate: {
+    fontSize: 14,
+    color: "#555",
+    marginVertical: 5,
+  },
+  overview: {
+    fontSize: 16,
+    color: "#555",
+    marginBottom: 10,
+  },
   poster: {
-    width: 200,
-    height: 300,
+    width: 100,
+    height: 150,
     marginTop: 10,
-    resizeMode: "contain",
+    resizeMode: "cover",
   },
 });
 

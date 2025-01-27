@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState } from "react";
 
 type AuthContextData = {
-  user: string | null;
-  login: (token: string) => void;
+  user: { id: string; username: string } | null;
+  login: (token: string, id: string, username: string) => void;
   logout: () => void;
   isLoading: () => boolean;
 };
@@ -10,19 +10,19 @@ type AuthContextData = {
 const AuthContext = createContext<AuthContextData | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<string | null>(null);
+  const [user, setUser] = useState<{ id: string; username: string } | null>(null);
 
-  const login = (token: string) => {
-    setUser(token); // Simulando o login com o token
+  const login = (token: string, id: string, username: string) => {
+    setUser({ id, username }); // Salva o id e o username do usuário
+
   };
+  
 
   const logout = () => {
-    setUser(null); // Limpa o estado de autenticação
+    setUser(null); // Limpa os dados do usuário
   };
 
-  const isLoading = () => {
-    return user === null; // Retorna true se ainda estiver aguardando autenticação
-  };
+  const isLoading = () => user === null;
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoading }}>

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
 import axios from "axios";
 import BookCard from "../components/BookCard"; // Importar o componente BookCard
 
@@ -19,12 +27,10 @@ interface BooksResponse {
   items: Book[];
 }
 
-const Books = () => {
+const Books = ({ navigation }: any) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const apiKey = "YOUR_GOOGLE_API_KEY"; // Substitua pela sua chave de API do Google
 
   const fetchBooks = async (query: string) => {
     if (!query) return;
@@ -51,6 +57,10 @@ const Books = () => {
     fetchBooks(searchQuery);
   };
 
+  const handleBookPress = (book: Book) => {
+    navigation.navigate("BookDetails", { book: book });
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
@@ -71,18 +81,18 @@ const Books = () => {
         data={books}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-     
-          <BookCard
-            book={{
-              id: item.id,
-              title: item.volumeInfo.title,
-              authors: item.volumeInfo.authors || ["Autor desconhecido"],
-              thumbnail: item.volumeInfo.imageLinks?.thumbnail || "https://via.placeholder.com/80x120", // Placeholder se não houver imagem
-            }}
-          />
-        )}  
-      /> 
-      
+          <TouchableOpacity onPress={() => handleBookPress(item)}>
+            <BookCard
+              book={{
+                id: item.id,
+                title: item.volumeInfo.title,
+                authors: item.volumeInfo.authors || ["Autor desconhecido"],
+                thumbnail: item.volumeInfo.imageLinks?.thumbnail || "https://via.placeholder.com/80x120", // Placeholder se não houver imagem
+              }}
+            />
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 };

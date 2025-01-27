@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
+import { Alert, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
+import { Container, Title, Input, RegisterLink, ButtonContainer, StyledButton } from '../styles/LoginStyles';
 
-// Define o tipo de navegação para a tela "Home"
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -18,7 +18,7 @@ type LoginScreenNavigationProp = StackNavigationProp<
 >;
 
 const Login = () => {
-  const navigation = useNavigation<LoginScreenNavigationProp>(); // Tipagem da navegação
+  const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,15 +31,15 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://192.168.1.3:3000/api/users/login",
+        "http://192.168.1.150:3000/api/users/login",
         { email, password }
       );
 
       if (response.status === 200) {
-        const { token } = response.data;
+        const { token, id, username } = response.data;
         console.log("Token recebido:", token);
-        login(token); // Atualiza estado global
-        navigation.navigate("Home"); // Redireciona para Home após login
+        login(token, id, username);
+        navigation.navigate("Home");
       }
     } catch (error) {
       console.error("Erro no login:", error);
@@ -48,58 +48,30 @@ const Login = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.input}
+    <Container>
+      <Title>Login</Title>
+      <Input
         placeholder="E-mail"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
       />
-      <TextInput
-        style={styles.input}
+      <Input
         placeholder="Senha"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Login" onPress={handleLogin} />
-      <Text
-        style={styles.registerLink}
-        onPress={() => navigation.navigate("Register")}
-      >
+      <ButtonContainer>
+        <StyledButton onPress={handleLogin}>
+          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>Login</Text>
+        </StyledButton>
+      </ButtonContainer>
+      <RegisterLink onPress={() => navigation.navigate("Register")}>
         Não tem uma conta? Cadastre-se
-      </Text>
-    </View>
+      </RegisterLink>
+    </Container>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  input: {
-    width: "100%",
-    padding: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-  },
-  registerLink: {
-    marginTop: 15,
-    color: "#007bff",
-    textDecorationLine: "underline",
-  },
-});
 
 export default Login;

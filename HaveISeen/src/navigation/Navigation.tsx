@@ -7,13 +7,17 @@ import Register from "../screens/Register";
 import Home from "../screens/Home";
 import Feed from "../screens/Feed";
 import BookDetails from "../screens/BookDetails";
+import MovieDetails from "../screens/MovieDetails";
+import ListDetails from "../screens/ListDetails";
 
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
   Feed: undefined;
-  BookDetails: { book: any }; // Aceita os detalhes do livro como parâmetro
+  BookDetails: { book: any };
+  MovieDetails: { movie: any };
+  listDetails: {list: any}
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -34,6 +38,8 @@ const Navigation = () => {
             <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="Feed" component={Feed} />
             <Stack.Screen name="BookDetails" component={BookDetails} />
+            <Stack.Screen name="MovieDetails" component={MovieDetails} />
+            <Stack.Screen name="ListDetails" component={ListDetails} />
           </>
         )}
       </Stack.Navigator>

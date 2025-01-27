@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 
-const API_URL = "http://192.168.1.3:3000/api/users/register"; // Atualize com o endereço do seu servidor
+const API_URL = "http://192.168.1.150:3000/api/users/register"; // Atualize com o endereço do seu servidor
 
 const Register = () => {
   const navigation = useNavigation();

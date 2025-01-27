@@ -1,138 +1,161 @@
-import React, { useState } from "react";
-import { View, Text, Button, Alert, StyleSheet, Image, TextInput, Modal } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Button,
+  Alert,
+  StyleSheet,
+  Image,
+  Modal,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  TextInput,
+} from "react-native";
 import axios from "axios";
-import { useAuth } from "../contexts/AuthContext"; // Contexto para pegar o usuário autenticado
+import { useAuth } from "../contexts/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
 
-interface BookDetailsProps {
-  route: {
-    params: {
-      book: {
-        id: string;
-        title: string;
-        authors: string[];
-        thumbnail: string;
-      };
-    };
-  };
-}
-
-const BookDetails: React.FC<BookDetailsProps> = ({ route, navigation }) => {
+const BookDetails: React.FC<{ route: any; navigation: any }> = ({
+  route,
+  navigation,
+}) => {
   const { book } = route.params;
-  const { user } = useAuth(); // Pega o usuário logado
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [reviewText, setReviewText] = useState("");
-  const [addToListModalVisible, setAddToListModalVisible] = useState(false);
+  const { user } = useAuth();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [lists, setLists] = useState<any[]>([]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [newListName, setNewListName] = useState<string>("");
 
-  const handleAddToList = async () => {
-    if (!user) {
-      Alert.alert("Erro", "Você precisa estar logado para adicionar livros à lista.");
-      return;
+  const user_id = user?.id;
+  const book_id = book.id.toString();
+
+  useEffect(() => {
+    if (user_id) {
+      fetchLists();
+    } else {
+      Alert.alert("Erro", "Usuário não encontrado.");
     }
+  }, [user_id]);
+
+  const fetchLists = async () => {
+    if (!user_id) return;
 
     setLoading(true);
-
     try {
-      await axios.post("http://192.168.1.3:3000/api/users/listregister", {
-        user_id: user.id,
-        list_name: "Minha Lista de Livros",
-        list_type: "book",
-        item_id: book.id,
-        item_details: {
-          title: book.title,
-          authors: book.authors,
-          thumbnail: book.thumbnail,
-        },
-      });
-
-      Alert.alert("Sucesso", `${book.title} foi adicionado à sua lista!`);
-      setAddToListModalVisible(false);
+      const response = await axios.get(
+        `http://192.168.1.150:3000/api/users/lists?user_id=${user_id}&type=book`
+      );
+      // Verificar se a resposta contém dados válidos
+      if (response.data && response.data.lists) {
+        setLists(response.data.lists);
+      } else {
+        Alert.alert("Aviso", "Nenhuma lista encontrada.");
+      }
     } catch (error) {
-      console.error("Erro ao adicionar à lista:", error);
-      Alert.alert("Erro", "Não foi possível adicionar o livro à lista.");
+      console.error("Erro ao buscar listas:", error);
+      Alert.alert("Erro", "Não foi possível carregar as listas.");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleReviewSubmit = async () => {
-    if (!user || !reviewText) {
-      Alert.alert("Erro", "Por favor, escreva um review antes de enviar.");
+  const handleAddList = async () => {
+    if (!newListName.trim()) {
+      Alert.alert("Erro", "O nome da lista não pode estar vazio.");
       return;
     }
 
-    setLoading(true);
-
     try {
-      await axios.post("http://192.168.1.3:3000/api/reviews", {
-        user_id: user.id,
-        book_id: book.id,
-        review_text: reviewText,
+      await axios.post("http://192.168.1.150:3000/api/users/listRegister", {
+        user_id,
+        name: newListName,
+        type: "book",
       });
 
-      Alert.alert("Sucesso", "Seu review foi enviado!");
-      setModalVisible(false);
-      setReviewText("");
+      Alert.alert("Sucesso", "Lista criada com sucesso!");
+      setNewListName("");
+      fetchLists();
     } catch (error) {
-      console.error("Erro ao enviar review:", error);
-      Alert.alert("Erro", "Não foi possível enviar seu review.");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao criar lista:", error);
+      Alert.alert("Erro", "Não foi possível criar a lista. Tente novamente.");
     }
+  };
+  const handleAddBookToList = async (listId: any) => {
+    try {
+      // Enviar para a API o ID da lista e o ID do livro
+      await axios.post("http://192.168.1.150:3000/api/users/addItemToList", {
+        list_id: listId,
+        item_id: book_id,
+      });
+
+      Alert.alert("Sucesso", "Livro adicionado à lista com sucesso!"); // Usando alert do React Native
+      toggleModal(); // Fechar o modal após adicionar
+    } catch (error) {
+      console.error("Erro ao adicionar livro à lista:", error);
+      Alert.alert(
+        "Erro",
+        "Não foi possível adicionar o livro. Tente novamente."
+      );
+    }
+  };
+
+  const toggleModal = () => {
+    setModalVisible(!isModalVisible);
   };
 
   return (
     <View style={styles.container}>
       <Button title="Voltar" onPress={() => navigation.goBack()} />
-      <Text style={styles.title}>{book.title}</Text>
-      <Text style={styles.authors}>Autores: {book.authors.join(", ")}</Text>
-      <Image source={{ uri: book.thumbnail }} style={styles.bookImage} />
-      
-      {/* Botão Adicionar à Lista que abre o modal */}
-      <Button
-        title="Adicionar à Lista"
-        onPress={() => setAddToListModalVisible(true)}
-      />
-      
-      {/* Modal de adicionar à lista */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={addToListModalVisible}
-        onRequestClose={() => setAddToListModalVisible(false)}
-      >
+      {loading ? (
+        <ActivityIndicator size="large" color="#000" />
+      ) : (
+        <>
+          <Text style={styles.title}>{book.title}</Text>
+          <Text style={styles.authors}>Autores: {book.authors.join(", ")}</Text>
+          <Image source={{ uri: book.thumbnail }} style={styles.bookImage} />
+          <Button title="Adicionar à Lista" onPress={toggleModal} />
+        </>
+      )}
+
+      {/* Modal de Adicionar à Lista */}
+      <Modal visible={isModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Adicionar à Lista</Text>
-            <Image source={{ uri: book.thumbnail }} style={styles.bookImageModal} />
-            <Text style={styles.modalText}>{book.title}</Text>
-            <Button title={loading ? "Adicionando..." : "Confirmar Adição"} onPress={handleAddToList} disabled={loading} />
-            <Button title="Fechar" onPress={() => setAddToListModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-      
-      {/* Botão para escrever review */}
-      <Button title="Escrever Review" onPress={() => setModalVisible(true)} />
-      
-      {/* Modal para escrever review */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TextInput
-              style={styles.reviewInput}
-              placeholder="Escreva seu review..."
-              value={reviewText}
-              onChangeText={setReviewText}
-              multiline
-            />
-            <Button title="Enviar Review" onPress={handleReviewSubmit} />
-            <Button title="Fechar" onPress={() => setModalVisible(false)} />
+            <Text style={styles.modalTitle}>Suas Listas</Text>
+
+            <View style={styles.newListContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Nova lista"
+                value={newListName}
+                onChangeText={setNewListName}
+              />
+              <TouchableOpacity
+                onPress={handleAddList}
+                style={styles.addButton}
+              >
+                <Ionicons name="add-circle" size={32} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+              <FlatList
+                data={lists}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.listItem}
+                    onPress={() => handleAddBookToList(item.id)}
+                  >
+                    <Text style={styles.listName}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+
+            <Button title="Fechar" onPress={toggleModal} />
           </View>
         </View>
       </Modal>
@@ -141,31 +164,10 @@ const BookDetails: React.FC<BookDetailsProps> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  authors: {
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  bookImage: {
-    width: 150,
-    height: 200,
-    marginBottom: 20,
-    alignSelf: "center",
-  },
-  bookImageModal: {
-    width: 100,
-    height: 150,
-    marginBottom: 10,
-    alignSelf: "center",
-  },
+  container: { flex: 1, padding: 16 },
+  title: { fontSize: 24, fontWeight: "bold" },
+  authors: { fontSize: 16, marginBottom: 16 },
+  bookImage: { width: 120, height: 180, marginBottom: 16 },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -173,28 +175,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    width: "80%",
     backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 8,
+    width: "80%",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalText: {
-    fontSize: 16,
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 16 },
+  listItem: { padding: 10, borderBottomWidth: 1 },
+  listName: { fontSize: 16 },
+  input: { borderBottomWidth: 1, marginBottom: 16, padding: 8 },
+  newListContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
-    textAlign: "center",
   },
-  reviewInput: {
-    height: 150,
-    borderColor: "gray",
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 10,
+  addButton: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
