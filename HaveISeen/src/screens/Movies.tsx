@@ -32,7 +32,7 @@ const Movies = () => {
   const fetchTmdbApiKey = async () => {
     try {
       const response = await axios.get(
-        "http://192.168.1.150:3000/api/users/movie-api-key"
+        "http://127.0.0.1:3000/api/users/movie-api-key"
       );
       setTmdbApiKey(response.data.apiKey);
     } catch (error) {

@@ -1,20 +1,28 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Button,
-  Alert,
-  StyleSheet,
-  Image,
-  Modal,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  TextInput,
-} from "react-native";
+import { Alert, Modal, FlatList, ActivityIndicator, TouchableOpacity,Text } from "react-native";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  Container,
+  Title,
+  Authors,
+  BookImage,
+  ModalContainer,
+  ModalContent,
+  ModalTitle,
+  ListItem,
+  ListName,
+  Input,
+  NewListContainer,
+  AddButton,
+  StarsContainer,
+  Star,
+  TextInputReview,
+  Button,
+  ButtonText,
+  ActivityIndicatorStyled,
+} from "../styles/BookDetailsStyles";
 
 const BookDetails: React.FC<{ route: any; navigation: any }> = ({
   route,
@@ -26,6 +34,9 @@ const BookDetails: React.FC<{ route: any; navigation: any }> = ({
   const [lists, setLists] = useState<any[]>([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [newListName, setNewListName] = useState<string>("");
+  const [isReviewModalVisible, setReviewModalVisible] = useState(false);
+  const [stars, setStars] = useState<number>(0);
+  const [reviewText, setReviewText] = useState<string>("");
 
   const user_id = user?.id;
   const book_id = book.id.toString();
@@ -44,9 +55,8 @@ const BookDetails: React.FC<{ route: any; navigation: any }> = ({
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://192.168.1.150:3000/api/users/lists?user_id=${user_id}&type=book`
+        `http://127.0.0.1:3000/api/users/lists?user_id=${user_id}&type=book`
       );
-      // Verificar se a resposta contém dados válidos
       if (response.data && response.data.lists) {
         setLists(response.data.lists);
       } else {
@@ -59,6 +69,7 @@ const BookDetails: React.FC<{ route: any; navigation: any }> = ({
       setLoading(false);
     }
   };
+
   const handleAddList = async () => {
     if (!newListName.trim()) {
       Alert.alert("Erro", "O nome da lista não pode estar vazio.");
@@ -66,7 +77,7 @@ const BookDetails: React.FC<{ route: any; navigation: any }> = ({
     }
 
     try {
-      await axios.post("http://192.168.1.150:3000/api/users/listRegister", {
+      await axios.post("http://127.0.0.1:3000/api/users/listRegister", {
         user_id,
         name: newListName,
         type: "book",
@@ -80,16 +91,16 @@ const BookDetails: React.FC<{ route: any; navigation: any }> = ({
       Alert.alert("Erro", "Não foi possível criar a lista. Tente novamente.");
     }
   };
+
   const handleAddBookToList = async (listId: any) => {
     try {
-      // Enviar para a API o ID da lista e o ID do livro
-      await axios.post("http://192.168.1.150:3000/api/users/addItemToList", {
+      await axios.post("http://127.0.0.1:3000/api/users/addItemToList", {
         list_id: listId,
         item_id: book_id,
       });
 
-      Alert.alert("Sucesso", "Livro adicionado à lista com sucesso!"); // Usando alert do React Native
-      toggleModal(); // Fechar o modal após adicionar
+      Alert.alert("Sucesso", "Livro adicionado à lista com sucesso!");
+      toggleModal();
     } catch (error) {
       console.error("Erro ao adicionar livro à lista:", error);
       Alert.alert(
@@ -103,96 +114,144 @@ const BookDetails: React.FC<{ route: any; navigation: any }> = ({
     setModalVisible(!isModalVisible);
   };
 
+  const toggleReviewModal = () => {
+    setReviewModalVisible(!isReviewModalVisible);
+  };
+
+  const handleAddReview = async () => {
+    if (!user_id) {
+      Alert.alert("Erro", "Usuário não autenticado.");
+      return;
+    }
+
+    if (stars === 0 || !reviewText.trim()) {
+      Alert.alert(
+        "Erro",
+        "Por favor, preencha a avaliação e escolha as estrelas."
+      );
+      return;
+    }
+
+    try {
+      await axios.post("http://127.0.0.1:3000/api/users/postReview", {
+        id_user: user_id,
+        id_item: book_id,
+        type: "book",
+        review: reviewText,
+        stars: stars,
+      });
+
+      Alert.alert("Sucesso", "Review adicionada com sucesso!");
+      setReviewText("");
+      setStars(0);
+      toggleReviewModal();
+    } catch (error) {
+      console.error("Erro ao adicionar review:", error);
+      Alert.alert(
+        "Erro",
+        "Não foi possível adicionar o review. Tente novamente."
+      );
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Button title="Voltar" onPress={() => navigation.goBack()} />
+    <Container>
+      <Button onPress={() => navigation.goBack()}>
+        <ButtonText>Voltar</ButtonText>
+      </Button>
       {loading ? (
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicatorStyled size="large" color="#4F46E5" />
       ) : (
         <>
-          <Text style={styles.title}>{book.title}</Text>
-          <Text style={styles.authors}>Autores: {book.authors.join(", ")}</Text>
-          <Image source={{ uri: book.thumbnail }} style={styles.bookImage} />
-          <Button title="Adicionar à Lista" onPress={toggleModal} />
+          <Title>{book.title}</Title>
+          <Authors>Autores: {book.authors.join(", ")}</Authors>
+          <BookImage source={{ uri: book.thumbnail }} />
+          <Button onPress={toggleModal}>
+            <ButtonText>Adicionar à Lista</ButtonText>
+          </Button>
+          <Button onPress={toggleReviewModal}>
+            <ButtonText>Adicionar Review</ButtonText>
+          </Button>
         </>
       )}
 
-      {/* Modal de Adicionar à Lista */}
+      {/* Modal de Listas */}
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Suas Listas</Text>
+        <ModalContainer>
+          <ModalContent>
+            <ModalTitle>Suas Listas</ModalTitle>
 
-            <View style={styles.newListContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Nova lista"
+            <NewListContainer>
+              <Input
+                placeholder="Nome da nova lista"
                 value={newListName}
                 onChangeText={setNewListName}
               />
-              <TouchableOpacity
-                onPress={handleAddList}
-                style={styles.addButton}
-              >
-                <Ionicons name="add-circle" size={32} color="#007BFF" />
-              </TouchableOpacity>
-            </View>
+              <AddButton onPress={handleAddList}>
+                <Ionicons name="add-circle" size={32} color="#4F46E5" />
+              </AddButton>
+            </NewListContainer>
 
             {loading ? (
-              <ActivityIndicator size="large" color="#0000ff" />
+              <ActivityIndicatorStyled size="large" color="#4F46E5" />
             ) : (
               <FlatList
                 data={lists}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.listItem}
-                    onPress={() => handleAddBookToList(item.id)}
-                  >
-                    <Text style={styles.listName}>{item.name}</Text>
-                  </TouchableOpacity>
+                  <ListItem onPress={() => handleAddBookToList(item.id)}>
+                    <ListName>{item.name}</ListName>
+                  </ListItem>
                 )}
               />
             )}
 
-            <Button title="Fechar" onPress={toggleModal} />
-          </View>
-        </View>
+            <Button onPress={toggleModal}>
+              <ButtonText>Fechar</ButtonText>
+            </Button>
+          </ModalContent>
+        </ModalContainer>
       </Modal>
-    </View>
+
+      {/* Modal de Review */}
+      <Modal
+        visible={isReviewModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <ModalContainer>
+          <ModalContent>
+            <ModalTitle>Adicionar Review</ModalTitle>
+            <Text>Quantas estrelas?</Text>
+            <StarsContainer>
+              {[...Array(10)].map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => setStars(index + 1)}
+                >
+                  <Star selected={index < stars}>
+                    {index < stars ? "★" : "☆"}
+                  </Star>
+                </TouchableOpacity>
+              ))}
+            </StarsContainer>
+            <TextInputReview
+              placeholder="Escreva seu review..."
+              value={reviewText}
+              onChangeText={setReviewText}
+              multiline
+            />
+            <Button onPress={handleAddReview}>
+              <ButtonText>Enviar</ButtonText>
+            </Button>
+            <Button onPress={toggleReviewModal}>
+              <ButtonText>Cancelar</ButtonText>
+            </Button>
+          </ModalContent>
+        </ModalContainer>
+      </Modal>
+    </Container>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 24, fontWeight: "bold" },
-  authors: { fontSize: 16, marginBottom: 16 },
-  bookImage: { width: 120, height: 180, marginBottom: 16 },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 8,
-    width: "80%",
-  },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 16 },
-  listItem: { padding: 10, borderBottomWidth: 1 },
-  listName: { fontSize: 16 },
-  input: { borderBottomWidth: 1, marginBottom: 16, padding: 8 },
-  newListContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  addButton: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
 
 export default BookDetails;

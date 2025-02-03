@@ -30,7 +30,7 @@ const Lists: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://192.168.1.150:3000/api/users/lists?user_id=${user_id}&type=${type}`
+        `http://127.0.0.1:3000/api/users/lists?user_id=${user_id}&type=${type}`
       );
       if (type === "movie") {
         setMovieLists(response.data.lists);

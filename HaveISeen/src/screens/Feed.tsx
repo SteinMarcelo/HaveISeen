@@ -31,7 +31,7 @@ const Feed = () => {
   const fetchTmdbApiKey = async () => {
     try {
       const response = await axios.get(
-        "http://192.168.1.150:3000/api/users/movie-api-key"
+        "http://127.0.0.1:3000/api/users/movie-api-key"
       );
       setTmdbApiKey(response.data.apiKey); // Supondo que a resposta contenha a chave em `apiKey`
     } catch (error) {
@@ -47,7 +47,7 @@ const Feed = () => {
     try {
       // Requisição à API para buscar os reviews
       const response = await axios.get(
-        "http://192.168.1.150:3000/api/users/reviews"
+        "http://127.0.0.1:3000/api/users/reviews"
       );
 
       // Verifica se os reviews estão no formato esperado
@@ -98,7 +98,7 @@ const Feed = () => {
     try {
       // Faz a requisição PUT para desativar o review
       const response = await axios.put(
-        "http://192.168.1.150:3000/api/users/deactivateReview",
+        "http://127.0.0.1:3000/api/users/deactivateReview",
         { review_id: reviewId }
       );
 

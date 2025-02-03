@@ -18,7 +18,7 @@ const ListDetails: React.FC = ({ route }: any) => {
 
     try {
       const response = await axios.get(
-        `http://192.168.1.150:3000/api/users/listItens?listId=${listId}&type=${type}`
+        `http://127.0.0.1:3000/api/users/listItens?listId=${listId}&type=${type}`
       );
       setItems(response.data.items);
     } catch (error) {

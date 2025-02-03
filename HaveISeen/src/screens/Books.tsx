@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  ActivityIndicator,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-} from "react-native";
+import { TouchableOpacity } from "react-native"; // Importação adicionada
 import axios from "axios";
-import BookCard from "../components/BookCard"; // Importar o componente BookCard
+import BookCard from "../components/BookCard";
+import {
+  Container,
+  Title,
+  SearchInput,
+  SearchButton,
+  SearchButtonText,
+  BookList,
+  LoadingIndicator,
+} from "../styles/BooksStyles";
 
 interface Book {
   id: string;
@@ -61,64 +62,42 @@ const Books = ({ navigation }: any) => {
     navigation.navigate("BookDetails", { book: book });
   };
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Busca de Livros</Text>
-      <TextInput
-        style={styles.searchInput}
+    <Container>
+      <Title>Busca de Livros</Title>
+      <SearchInput
         placeholder="Digite o título ou autor"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
-      <Text style={styles.searchButton} onPress={handleSearch}>
-        Buscar
-      </Text>
-      <FlatList
-        data={books}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleBookPress(item)}>
-            <BookCard
-              book={{
-                id: item.id,
-                title: item.volumeInfo.title,
-                authors: item.volumeInfo.authors || ["Autor desconhecido"],
-                thumbnail: item.volumeInfo.imageLinks?.thumbnail || "https://via.placeholder.com/80x120", // Placeholder se não houver imagem
-              }}
-            />
-          </TouchableOpacity>
-        )}
-      />
-    </View>
+      <SearchButton onPress={handleSearch}>
+        <SearchButtonText>Buscar</SearchButtonText>
+      </SearchButton>
+
+      {loading ? (
+        <LoadingIndicator size="large" color="#4F46E5" />
+      ) : (
+        <BookList
+          data={books}
+          keyExtractor={(item: { id: any; }) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleBookPress(item)}>
+              <BookCard
+                book={{
+                  id: item.id,
+                  title: item.volumeInfo.title,
+                  authors: item.volumeInfo.authors || ["Autor desconhecido"],
+                  thumbnail:
+                    item.volumeInfo.imageLinks?.thumbnail ||
+                    "https://via.placeholder.com/80x120", // Placeholder se não houver imagem
+                }}
+              />
+            </TouchableOpacity>
+          )}
+        />
+      )}
+    </Container>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  searchInput: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  searchButton: {
-    color: "blue",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-});
 
 export default Books;
